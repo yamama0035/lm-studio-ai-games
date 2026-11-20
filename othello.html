@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LM Studio AI ゲームセンター (ボードゲーム・トランプ)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="page-shell">
+  <header class="game-switcher-bar">
+    <div class="switcher-top">
+      <div class="brand-group">
+        <span class="brand-title">LM Studio AI ゲームセンター</span>
+        <span id="conn-status" class="status-tag">未確認</span>
+      </div>
+    </div>
+    <nav class="game-groups" aria-label="遊ぶゲームを選択">
+      <div class="game-group">
+        <span class="group-label">ボード</span>
+        <div class="game-tabs" role="tablist">
+          <button type="button" class="game-tab active" data-game="othello" role="tab" aria-selected="true">オセロ</button>
+          <button type="button" class="game-tab" data-game="mancala" role="tab" aria-selected="false">マンカラ</button>
+          <button type="button" class="game-tab" data-game="gomoku" role="tab" aria-selected="false">五目並べ</button>
+          <button type="button" class="game-tab" data-game="connect4" role="tab" aria-selected="false">四目並べ</button>
+          <button type="button" class="game-tab" data-game="checkers" role="tab" aria-selected="false">チェッカー</button>
+        </div>
+      </div>
+      <div class="game-group">
+        <span class="group-label">トランプ</span>
+        <div class="game-tabs" role="tablist">
+          <button type="button" class="game-tab" data-game="blackjack" role="tab" aria-selected="false">ブラックジャック</button>
+          <button type="button" class="game-tab" data-game="poker" role="tab" aria-selected="false">ポーカー</button>
+          <button type="button" class="game-tab" data-game="daifugo" role="tab" aria-selected="false">大富豪</button>
+          <button type="button" class="game-tab" data-game="crazy8" role="tab" aria-selected="false">クレイジー8</button>
+          <button type="button" class="game-tab" data-game="memory" role="tab" aria-selected="false">神経衰弱</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <h2 id="game-title">オセロ (Othello)</h2>
+
+      <div class="config-group">
+        <div class="config-row">
+          <label for="api-url">接続先</label>
+          <input type="text" id="api-url" value="http://localhost:1234/v1/chat/completions">
+          <button type="button" id="btn-localhost" class="btn-mini" title="http://localhost:1234/v1/chat/completions を入力">ローカル</button>
+        </div>
+        <div class="config-row">
+          <label for="model-select">モデル</label>
+          <select id="model-select">
+            <option value="">自動（ロード済みモデル）</option>
+          </select>
+          <button type="button" id="btn-refresh-models" class="btn-mini">更新</button>
+        </div>
+        <div class="config-row">
+          <label for="difficulty">難易度</label>
+          <select id="difficulty">
+            <option value="easy">かんたん（直感打ち）</option>
+            <option value="normal" selected>ふつう（石数重視）</option>
+            <option value="hard">つよい（角と定石重視）</option>
+            <option value="master">達人（盤面・手数・リスク計算）</option>
+          </select>
+        </div>
+        <div class="config-row" id="player-side-row">
+          <label for="player-color" id="player-side-label">あなた</label>
+          <select id="player-color">
+            <option value="black" selected>黒（先手）</option>
+            <option value="white">白（後手）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="status-bar">
+        <span id="turn-indicator">手番: あなた (黒)</span>
+        <div class="score-badge">
+          <div class="badge"><span id="dot-first" class="dot black"></span> <span id="label-black">黒(あなた)</span>: <span id="score-black">2</span></div>
+          <div class="badge"><span id="dot-second" class="dot white"></span> <span id="label-white">白(AI)</span>: <span id="score-white">2</span></div>
+        </div>
+      </div>
+
+      <div id="game-stage"></div>
+
+      <details id="game-rules-box" class="game-rules">
+        <summary id="game-rules-summary">ルール早見表</summary>
+        <div id="game-rules-content"></div>
+      </details>
+
+      <div class="board-actions">
+        <button type="button" id="btn-undo" class="btn-secondary">1手戻す（待った）</button>
+        <button type="button" id="btn-reset" class="btn-primary">盤面をリセット</button>
+      </div>
+    </div>
+
+    <div class="panel log-container">
+      <h2>
+        <span>AI思考ログ</span>
+        <span class="header-controls">
+          <label class="inline-toggle">
+            <input type="checkbox" id="toggle-reasoning">
+            内部推論を表示
+          </label>
+          <button type="button" id="btn-abort" class="btn-danger" hidden>思考を中断</button>
+          <span id="ai-status-tag" class="status-tag">待機中</span>
+        </span>
+      </h2>
+
+      <div id="ai-error-bar" class="error-banner" role="alert">
+        <div id="ai-error-text"></div>
+        <div class="error-actions">
+          <button type="button" id="btn-retry" class="btn-mini">再試行</button>
+          <button type="button" id="btn-fallback" class="btn-mini">フォールバック手で続行</button>
+        </div>
+      </div>
+
+      <div id="thinking-log"><span class="thought-placeholder">手番を待っています。</span></div>
+      <div id="history-log"></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/game-registry.js"></script>
+<script src="js/cards.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/mancala-engine.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/games/othello-game.js"></script>
+<script src="js/games/mancala-game.js"></script>
+<script src="js/games/gomoku.js"></script>
+<script src="js/games/connect4.js"></script>
+<script src="js/games/checkers.js"></script>
+<script src="js/games/blackjack.js"></script>
+<script src="js/games/poker.js"></script>
+<script src="js/games/daifugo.js"></script>
+<script src="js/games/crazy8.js"></script>
+<script src="js/games/memory.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
